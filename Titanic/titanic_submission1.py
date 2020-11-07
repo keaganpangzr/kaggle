@@ -50,17 +50,20 @@ df_test = pd.read_csv("data/test.csv")
 df_train = df_train[df_train['Age'].isnull() == False]
 df_train = df_train[df_train['Embarked'].isnull() == False]
 
+def feature_engineering(df_train):
+    #Sex: One-hot
+    df_train['Sex'] = pd.get_dummies(df_train['Sex'])
+   
+    #Age & Fare: Normalize
+    scaler = MinMaxScaler()
+    df_train[['Age','Fare']] = scaler.fit_transform(df_train[['Age', 'Fare']])
 
-#Feature engineering: Sex, one-hot encode
-is_male = pd.get_dummies(df_train['Sex'])
-df_train['Sex'] = is_male
+    #Embarked: One-hot
+    df_train[['Embarked_C', 'Embarked_Q', 'Embarked_S']] = pd.get_dummies(df_train['Embarked'])
 
-#Feature engineering: Age and Fare
-scaler = MinMaxScaler()
-df_train[['Age','Fare']] = scaler.fit_transform(df_train[['Age', 'Fare']])
+    return df_train
 
-#Feature engineering: Embarked, one-hot encode
-df_train[['Embarked_C', 'Embarked_Q', 'Embarked_S']] = pd.get_dummies(df_train['Embarked'])
+df_train = feature_engineering(df_train)
 
 #Split data with Hold-out method
 features =['Sex', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked_C', 'Embarked_Q', 'Embarked_S']
@@ -73,17 +76,12 @@ clf = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=1)
 clf.fit(X_train, y_train)
 
 y_pred = clf.predict(X_test)
-print(metrics.accuracy_score(y_test, y_pred))
+print('Accuracy: ', metrics.accuracy_score(y_test, y_pred))
 
-#process df_test
-is_male = pd.get_dummies(df_test['Sex'])
-df_test['Sex'] = is_male
-scaler = MinMaxScaler()
-df_test[['Age','Fare']] = scaler.fit_transform(df_test[['Age', 'Fare']])
-df_test[['Embarked_C', 'Embarked_Q', 'Embarked_S']] = pd.get_dummies(df_test['Embarked'])
-features =['Sex', 'Pclass', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked_C', 'Embarked_Q', 'Embarked_S']
+#Feature engineering for submission test data set
+df_test = feature_engineering(df_test)
 
-#impute missing age and fare in df_test with mean of df_train
+#Impute missing age and fare in df_test with mean of df_train
 df_test['Age'] = df_test['Age'].fillna(df_train['Age'].mean())
 df_test['Fare'] = df_test['Fare'].fillna(df_train['Fare'].mean())
 
